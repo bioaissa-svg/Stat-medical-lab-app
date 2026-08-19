@@ -323,3 +323,4 @@ def build_report(
 
     doc.build(story)
     return output_path
+"""
