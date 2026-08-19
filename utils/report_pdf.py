@@ -37,18 +37,34 @@ _FONT_NAME_BOLD = "ArabicFont-Bold"
 
 
 def _register_fonts():
-    if _FONT_NAME not in pdfmetrics.getRegisteredFontNames():
-        if os.path.exists(FONT_REGULAR):
-            pdfmetrics.registerFont(TTFont(_FONT_NAME, FONT_REGULAR))
-        else:
-            _FONT_NAME_FALLBACK = "Helvetica"
-            return _FONT_NAME_FALLBACK, _FONT_NAME_FALLBACK
-    if _FONT_NAME_BOLD not in pdfmetrics.getRegisteredFontNames():
+    """
+    يسجّل خط FreeSerif إن وُجد وسليماً. في حال أي مشكلة (ملف مفقود، تالف،
+    أو غير صالح كـ TTF) يعود تلقائياً لخط Helvetica القياسي المدمج في
+    reportlab بدل تعطيل توليد التقرير بالكامل. Helvetica يدعم الفرنسية
+    (بما فيها الحروف المُشكَّلة é à ç...) لكنه لا يدعم العربية.
+    """
+    global _FONT_NAME, _FONT_NAME_BOLD
+
+    if _FONT_NAME in pdfmetrics.getRegisteredFontNames():
+        return _FONT_NAME, _FONT_NAME_BOLD
+
+    try:
+        if not os.path.exists(FONT_REGULAR):
+            raise FileNotFoundError(f"Police introuvable: {FONT_REGULAR}")
+        pdfmetrics.registerFont(TTFont(_FONT_NAME, FONT_REGULAR))
+
         if os.path.exists(FONT_BOLD):
             pdfmetrics.registerFont(TTFont(_FONT_NAME_BOLD, FONT_BOLD))
         else:
             pdfmetrics.registerFont(TTFont(_FONT_NAME_BOLD, FONT_REGULAR))
-    return _FONT_NAME, _FONT_NAME_BOLD
+
+        return _FONT_NAME, _FONT_NAME_BOLD
+
+    except Exception as e:
+        print(f"[report_pdf] Police FreeSerif indisponible ({e}) — "
+              f"repli sur Helvetica (le rendu arabe sera dégradé).")
+        _FONT_NAME, _FONT_NAME_BOLD = "Helvetica", "Helvetica-Bold"
+        return _FONT_NAME, _FONT_NAME_BOLD
 
 
 def rtl(text: str) -> str:
